@@ -1,0 +1,19 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsc-watch --onSucess \"node dist/index.js\" ",
+    "start":"node dist/index",
+    "build":"tsc -p ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.0.10",
+    "tsc-watch": "^7.1.1",
+    "typescript": "^5.8.3"
+  }
+}
