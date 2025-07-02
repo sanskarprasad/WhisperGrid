@@ -1,15 +1,17 @@
 import { Server } from "socket.io";
 
-
-
 class SocketService {
   private _io: Server;
+  private connectedClients = 0; // 🧮 Counter for connected sockets
 
   constructor() {
     console.log("Init Socket Service...");
     this._io = new Server({
+            cors: {
+        allowedHeaders: ["*"],
+        origin: "*",
+      },
     });
-  
   }
 
   public initListeners() {
@@ -17,12 +19,22 @@ class SocketService {
     console.log("Init Socket Listeners...");
 
     io.on("connect", (socket) => {
-      console.log(`New Socket Connected`, socket.id);
+      this.connectedClients++; // 🔼 Increment when new socket connects
+      console.log(`✅ New Socket Connected: ${socket.id}`);
+      console.log(`🔢 Total Connected Clients: ${this.connectedClients}`);
+
+      // Listen to custom event
       socket.on("event:message", async ({ message }: { message: string }) => {
-        console.log("New Message Rec.", message);
+        console.log("💬 New Message Rec.", message);
+      });
+
+      // Listen to disconnect event
+      socket.on("disconnect", () => {
+        this.connectedClients--; // 🔽 Decrement when socket disconnects
+        console.log(`❌ Socket Disconnected: ${socket.id}`);
+        console.log(`🔢 Total Connected Clients: ${this.connectedClients}`);
       });
     });
-
   }
 
   get io() {
