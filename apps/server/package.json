@@ -16,5 +16,8 @@
     "@types/node": "^24.0.10",
     "tsc-watch": "^7.1.1",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1"
   }
 }
