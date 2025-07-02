@@ -1,5 +1,20 @@
 import { Server } from "socket.io";
+import Redis from "ioredis";
 
+
+const pub = new Redis({
+  host: "",
+  port: 0,
+  username: "default",
+  password: "",
+});
+
+const sub = new Redis({
+  host: "",
+  port: 0,
+  username: "",
+  password: "",
+});
 class SocketService {
   private _io: Server;
   private connectedClients = 0; // 🧮 Counter for connected sockets
