@@ -6,8 +6,8 @@ A highly scalable, real-time chat application built with a modern microservice a
 
 ## 📐 Architecture Overview
 
-![Architecture Diagram](![image](https://github.com/user-attachments/assets/6fa4b3b6-1b8c-4270-ad35-e7abcb93d381)
-)
+![image](https://github.com/user-attachments/assets/513149a3-74da-4af3-b4b7-e804c7ace78c)
+
 
 - **WebSocket Servers**: Horizontally scalable servers handling real-time messaging between clients.
 - **Redis Pub/Sub**: Bridges communication between WebSocket servers to handle autoscaling problems and broadcast messages across all nodes.
