@@ -1,53 +1,117 @@
 import { Server } from "socket.io";
 import Redis from "ioredis";
 
-
+// Redis Publisher
 const pub = new Redis({
-  host: "",
-  port: 0,
-  username: "default",
-  password: "",
+  host: "127.0.0.1",
+  port: 6379,
 });
 
+// Redis Subscriber
 const sub = new Redis({
-  host: "",
-  port: 0,
-  username: "",
-  password: "",
+  host: "127.0.0.1",
+  port: 6379,
 });
+
 class SocketService {
   private _io: Server;
-  private connectedClients = 0; // 🧮 Counter for connected sockets
+  private roomUsers = new Map<string, Map<string, string>>(); // roomId -> socketId -> username
 
   constructor() {
-    console.log("Init Socket Service...");
+    console.log("✅ Init Socket Service...");
+
     this._io = new Server({
-            cors: {
-        allowedHeaders: ["*"],
+      cors: {
         origin: "*",
+        allowedHeaders: ["*"],
       },
+    });
+
+    this.initRedisListeners();
+  }
+
+  private initRedisListeners() {
+    sub.subscribe("chat", (err, count) => {
+      if (err) {
+        console.error("❌ Redis subscribe error:", err);
+      } else {
+        console.log(`📡 Subscribed to ${count} Redis channel(s)`);
+      }
+    });
+
+    sub.on("message", (channel, message) => {
+      console.log(`📨 Redis -> Channel: ${channel} | Message: ${message}`);
+      const data = JSON.parse(message);
+      this.io.to(data.roomId).emit("message", message);
     });
   }
 
   public initListeners() {
     const io = this.io;
-    console.log("Init Socket Listeners...");
+    console.log("🧲 Init Socket Listeners...");
 
     io.on("connect", (socket) => {
-      this.connectedClients++; // 🔼 Increment when new socket connects
-      console.log(`✅ New Socket Connected: ${socket.id}`);
-      console.log(`🔢 Total Connected Clients: ${this.connectedClients}`);
+      console.log(`🟢 New Socket Connected: ${socket.id}`);
 
-      // Listen to custom event
-      socket.on("event:message", async ({ message }: { message: string }) => {
-        console.log("💬 New Message Rec.", message);
+      // Join room with username
+      socket.on("join-room", ({ roomId, username }: { roomId: string; username: string }) => {
+        socket.join(roomId);
+        
+        // Store user in room
+        if (!this.roomUsers.has(roomId)) {
+          this.roomUsers.set(roomId, new Map());
+        }
+        this.roomUsers.get(roomId)!.set(socket.id, username);
+
+        // Get room user count and list
+        const roomUserMap = this.roomUsers.get(roomId)!;
+        const userCount = roomUserMap.size;
+        const userList = Array.from(roomUserMap.values());
+
+        // Notify room about new user
+        socket.to(roomId).emit("user-joined", { username, userCount, userList });
+        socket.emit("room-joined", { roomId, userCount, userList });
+
+        console.log(`👤 ${username} joined room ${roomId}. Total users: ${userCount}`);
       });
 
-      // Listen to disconnect event
+      // Handle messages
+      socket.on("event:message", async ({ message, roomId, username }: { message: string; roomId: string; username: string }) => {
+        console.log(`💬 Message from ${username} in room ${roomId}:`, message);
+
+        const messageData = {
+          name: username,
+          message,
+          roomId,
+          timestamp: new Date().toISOString()
+        };
+
+        // Publish message to Redis
+        await pub.publish("chat", JSON.stringify(messageData));
+      });
+
       socket.on("disconnect", () => {
-        this.connectedClients--; // 🔽 Decrement when socket disconnects
-        console.log(`❌ Socket Disconnected: ${socket.id}`);
-        console.log(`🔢 Total Connected Clients: ${this.connectedClients}`);
+        // Remove user from all rooms
+        for (const [roomId, userMap] of this.roomUsers.entries()) {
+          if (userMap.has(socket.id)) {
+            const username = userMap.get(socket.id)!;
+            userMap.delete(socket.id);
+            
+            const userCount = userMap.size;
+            const userList = Array.from(userMap.values());
+
+            // Clean up empty rooms
+            if (userCount === 0) {
+              this.roomUsers.delete(roomId);
+            } else {
+              // Notify room about user leaving
+              socket.to(roomId).emit("user-left", { username, userCount, userList });
+            }
+
+            console.log(`🔴 ${username} left room ${roomId}. Remaining users: ${userCount}`);
+            break;
+          }
+        }
       });
     });
   }
