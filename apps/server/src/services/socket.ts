@@ -1,17 +1,14 @@
 import { Server } from "socket.io";
 import Redis from "ioredis";
 
+// Get the Redis URL from the environment variable
+const redisUrl = process.env.REDIS_URL || "redis://redis:6379";
+
 // Redis Publisher
-const pub = new Redis({
-  host: "127.0.0.1",
-  port: 6379,
-});
+const pub = new Redis(redisUrl);
 
 // Redis Subscriber
-const sub = new Redis({
-  host: "127.0.0.1",
-  port: 6379,
-});
+const sub = new Redis(redisUrl);
 
 class SocketService {
   private _io: Server;

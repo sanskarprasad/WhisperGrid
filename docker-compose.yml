@@ -2,9 +2,11 @@ version: "3.9"
 services:
   web:
     build: .
-    command: npm run dev
+    command: yarn dev
     ports:
-      - "3000:3000"
+      - "3000:3000" # For the 'web' app
+      - "3001:3001" # For the 'docs' app
+      - "8000:8000" # For the 'server' app
     env_file:
       - .env
     environment:
@@ -13,6 +15,13 @@ services:
       - redis
     volumes:
       - .:/app
+      # Protect all node_modules folders from the volume mount
+      - /app/node_modules
+      - /app/apps/docs/node_modules
+      - /app/apps/server/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/eslint-config/node_modules
+      - /app/packages/ui/node_modules
   redis:
     image: redis:7-alpine
     ports:
